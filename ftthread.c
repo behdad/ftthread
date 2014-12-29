@@ -40,7 +40,7 @@ draw_thread (void *arg)
 
     FT_Load_Glyph (face, i % face->num_glyphs, load_flags);
 
-    if ((i & 63) == 0)
+    if (i % 1000 == 0)
     {
       pthread_mutex_lock (&lock);
       FT_Done_Face (face);
