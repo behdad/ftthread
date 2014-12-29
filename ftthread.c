@@ -11,9 +11,10 @@
 
 #define MAX_NUM_THREADS 4096
 
+const char *font_file = NULL;
 int num_iters = 100;
 int ppem = 100;
-const char *font_file = NULL;
+int load_flags = 0;
 
 pthread_mutex_t lock;
 FT_Library ft_library;
@@ -37,7 +38,7 @@ draw_thread (void *arg)
 	DIE ("FT_Set_Char_Size failed.");
     }
 
-    FT_Load_Glyph (face, i % face->num_glyphs, 0);
+    FT_Load_Glyph (face, i % face->num_glyphs, load_flags);
 
     if ((i & 63) == 0)
     {
@@ -65,9 +66,13 @@ main (int argc, char **argv)
   if (argc < 2)
   {
     fprintf (stderr,
-	     "usage: ftthread fontfile.ttf [numthreads] [numiters] [ppem]\n"
+	     "usage: ftthread fontfile.ttf [numthreads] [numiters] [ppem] [loadflags]\n"
 	     "\n"
-	     "numthreads, numiters, and ppem default to 100.\n");
+	     "numthreads, numiters, and ppem default to 100.\n"
+	     "loadflags defaults to 0.  Useful flags to logically or:\n"
+	     "NO_HINTING=2\nRENDER=4\nFORCE_AUTOHINT=32\nMONOCHROME=4096\n"
+	     "NO_AUTOHINT=32768\nCOLOR=1048576\n"
+	     );
     exit (1);
   }
   font_file = argv[1];
@@ -77,6 +82,8 @@ main (int argc, char **argv)
     num_iters = atoi (argv[3]);
   if (argc > 4)
     ppem = atoi (argv[4]);
+  if (argc > 5)
+    load_flags = atoi (argv[5]);
 
   assert (num_threads <= MAX_NUM_THREADS);
 
