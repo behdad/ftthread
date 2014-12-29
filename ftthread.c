@@ -37,7 +37,7 @@ draw_thread (void *arg)
 	DIE ("FT_Set_Char_Size failed.");
     }
 
-    FT_Load_Glyph (face, 50, 0);
+    FT_Load_Glyph (face, i % face->num_glyphs, 0);
 
     if ((i & 63) == 0)
     {
