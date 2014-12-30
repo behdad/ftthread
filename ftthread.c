@@ -7,7 +7,20 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#define DIE(msg) do { fprintf (stderr, msg "\n"); abort (); } while (0)
+#define DIE(msg) do { fprintf (stderr, msg"\n"); abort (); } while (0)
+#define DIE_FT(msg) do { fprintf (stderr, msg": %s\n", ft_errors[error].err_msg); abort (); } while (0)
+
+#undef __FTERRORS_H__
+#define FT_ERRORDEF( e, v, s )  { e, s },
+#define FT_ERROR_START_LIST     {
+#define FT_ERROR_END_LIST       { 0, 0 } };
+const struct
+{
+  int          err_code;
+  const char*  err_msg;
+} ft_errors[] =
+#include FT_ERRORS_H
+
 
 #define MAX_NUM_THREADS 4096
 
@@ -15,6 +28,7 @@ const char *font_file = NULL;
 int num_iters = 100;
 int ppem = 100;
 int load_flags = 0;
+FT_Error error;
 
 pthread_mutex_t lock;
 FT_Library ft_library;
@@ -25,12 +39,12 @@ create_face (void)
   FT_Face face = NULL;
 
   pthread_mutex_lock (&lock);
-  if (FT_New_Face (ft_library, font_file, 0, &face))
-    DIE ("Failed creating face.");
+  if ((error = FT_New_Face (ft_library, font_file, 0, &face)))
+    DIE_FT ("Failed creating face");
   pthread_mutex_unlock (&lock);
 
-  if (FT_Set_Pixel_Sizes (face, ppem, ppem))
-    DIE ("FT_Set_Char_Size failed.");
+  if ((error = FT_Set_Pixel_Sizes (face, ppem, ppem)))
+    DIE_FT ("FT_Set_Char_Size failed");
 
   return face;
 }
@@ -55,10 +69,8 @@ draw_thread (void *arg)
     if (!face)
       face = create_face ();
 
-    if (FT_Load_Glyph (face, i % face->num_glyphs, load_flags))
-      DIE ("FT_Load_Glyph failed.\n");
-//    if (FT_Render_Glyph (face->glyph, FT_RENDER_MODE_NORMAL))
-//      DIE ("FT_Render_Glyph failed.");
+    if ((error = FT_Load_Glyph (face, i % face->num_glyphs, load_flags)))
+      DIE_FT ("FT_Load_Glyph failed");
 
     if (i % 1000 == 0)
     {
@@ -110,13 +122,13 @@ main (int argc, char **argv)
   for (i = 0; i < num_threads; i++)
   {
     if (pthread_create (&threads[i], NULL, draw_thread, NULL) != 0)
-      DIE ("pthread_create() failed.");
+      DIE ("pthread_create() failed");
   }
 
   for (i = 0; i < num_threads; i++)
   {
     if (pthread_join (threads[i], NULL) != 0)
-      DIE ("pthread_join() failed.");
+      DIE ("pthread_join() failed");
   }
 
   FT_Done_FreeType (ft_library);
