@@ -19,6 +19,30 @@ int load_flags = 0;
 pthread_mutex_t lock;
 FT_Library ft_library;
 
+static FT_Face
+create_face (void)
+{
+  FT_Face face = NULL;
+
+  pthread_mutex_lock (&lock);
+  if (FT_New_Face (ft_library, font_file, 0, &face))
+    DIE ("Failed creating face.");
+  pthread_mutex_unlock (&lock);
+
+  if (FT_Set_Pixel_Sizes (face, ppem, ppem))
+    DIE ("FT_Set_Char_Size failed.");
+
+  return face;
+}
+
+static void
+destroy_face (FT_Face face)
+{
+  pthread_mutex_lock (&lock);
+  FT_Done_Face (face);
+  pthread_mutex_unlock (&lock);
+}
+
 static void *
 draw_thread (void *arg)
 {
@@ -29,33 +53,22 @@ draw_thread (void *arg)
   for (i = 0; i < num_iters; i++)
   {
     if (!face)
-    {
-      pthread_mutex_lock (&lock);
-      if (FT_New_Face (ft_library, font_file, 0, &face))
-	DIE ("Failed creating face.");
-      pthread_mutex_unlock (&lock);
-      if (FT_Set_Char_Size (face, ppem, ppem, 0, 0))
-	DIE ("FT_Set_Char_Size failed.");
-    }
+      face = create_face ();
 
-    FT_Load_Glyph (face, i % face->num_glyphs, load_flags);
+    if (FT_Load_Glyph (face, i % face->num_glyphs, load_flags))
+      DIE ("FT_Load_Glyph failed.\n");
+//    if (FT_Render_Glyph (face->glyph, FT_RENDER_MODE_NORMAL))
+//      DIE ("FT_Render_Glyph failed.");
 
     if (i % 1000 == 0)
     {
-      pthread_mutex_lock (&lock);
-      FT_Done_Face (face);
-      if (FT_New_Face (ft_library, font_file, 0, &face))
-	DIE ("Failed recreating face.");
-      pthread_mutex_unlock (&lock);
+      destroy_face (face);
+      face = create_face ();
     }
   }
 
   if (face)
-  {
-    pthread_mutex_lock (&lock);
-    FT_Done_Face (face);
-    pthread_mutex_unlock (&lock);
-  }
+    destroy_face (face);
 
   return NULL;
 }
