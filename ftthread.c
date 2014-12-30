@@ -51,7 +51,11 @@ draw_thread (void *arg)
   }
 
   if (face)
+  {
+    pthread_mutex_lock (&lock);
     FT_Done_Face (face);
+    pthread_mutex_unlock (&lock);
+  }
 
   return NULL;
 }
