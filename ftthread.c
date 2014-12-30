@@ -107,12 +107,13 @@ main (int argc, char **argv)
   if (argc < 2)
   {
     fprintf (stderr,
-	     "usage: ftthread fontfile.ttf [numthreads] [numiters] [ppem] [loadflags]\n"
+	     "usage: ftthread fontfile.ttf [numthreads] [numiters] [ppem] [loadflags-hex]\n"
 	     "\n"
-	     "numthreads, numiters, and ppem default to 100.\n"
-	     "loadflags defaults to 0.  Useful flags to logically or:\n"
-	     "NO_HINTING=2\nRENDER=4\nFORCE_AUTOHINT=32\nMONOCHROME=4096\n"
-	     "NO_AUTOHINT=32768\nCOLOR=1048576\n"
+	     "numthreads, numiters, and ppem default to 100.\n\n"
+	     "loadflags defaults to 0.  Values are in hex.\n"
+	     "Useful flags to logically or:\n"
+	     "NO_HINTING=2\nRENDER=4\nFORCE_AUTOHINT=20\nMONOCHROME=1000\n"
+	     "NO_AUTOHINT=8000\nCOLOR=100000\n"
 	     );
     exit (1);
   }
@@ -124,7 +125,7 @@ main (int argc, char **argv)
   if (argc > 4)
     ppem = atoi (argv[4]);
   if (argc > 5)
-    load_flags = atoi (argv[5]);
+    load_flags = strtol (argv[5], NULL, 16);
 
   assert (num_threads <= MAX_NUM_THREADS);
 
