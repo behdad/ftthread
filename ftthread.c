@@ -8,10 +8,11 @@
 #include FT_FREETYPE_H
 
 #define DIE(msg) do { fprintf (stderr, msg"\n"); abort (); } while (0)
-#define DIE_FT(msg) do { fprintf (stderr, msg": %s\n", ft_errors[error].err_msg); abort (); } while (0)
+#define DIE_FT(msg) do { fprintf (stderr, msg": %s\n", ft_err_msg(error)); abort (); } while (0)
 
 #undef __FTERRORS_H__
-#define FT_ERRORDEF( e, v, s )  { e, s },
+#define STRINGIFY(s) #s
+#define FT_ERRORDEF( e, v, s )  { e, STRINGIFY(e)": "s"." },
 #define FT_ERROR_START_LIST     {
 #define FT_ERROR_END_LIST       { 0, 0 } };
 const struct
@@ -20,6 +21,17 @@ const struct
   const char*  err_msg;
 } ft_errors[] =
 #include FT_ERRORS_H
+
+static const char *
+ft_err_msg(FT_Error err)
+{
+  int i;
+  for (i = 0; i < (&ft_errors)[1] - ft_errors; i++)
+    if (ft_errors[i].err_code == err)
+      return ft_errors[i].err_msg;
+  return "bad / unknown error";
+}
+
 
 
 #define MAX_NUM_THREADS 4096
