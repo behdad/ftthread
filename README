@@ -1,0 +1,108 @@
+ftthread
+========
+
+This is a test tool to use FreeType2 in a multi-threaded environment.
+
+FreeType2 is not thread-safe, and the original author(s) of FreeType
+suggest that one FT_Library per thread should be used.  Unfortunately
+this is too inflexible to be really useful.
+
+However, there are ways to use it safely in a multi-threaded environment
+with simple modifications to FreeType.  I have now produced a complete
+patchset to that effect and tested it using this utility.  The patchset
+is available here:
+
+  https://github.com/behdad/freetype/commits/ftthread
+
+and I hope it to be integrated into upstream FreeType very soon.  In
+the mean time, here's the new threadsafety model, which needs to be
+integrated into FreeType documentation.  Note that cairo graphics
+library already uses FreeType in this way and as such the entire GNOME
+desktop has been relying on this model, to huge disappointment as seen
+in the following bug reports, each of which have many duplicates:
+
+  https://bugzilla.redhat.com/show_bug.cgi?id=678397
+  https://bugzilla.redhat.com/show_bug.cgi?id=1004315
+  https://bugzilla.redhat.com/show_bug.cgi?id=1164941
+  https://bugzilla.redhat.com/show_bug.cgi?id=1165471
+  https://bugs.freedesktop.org/show_bug.cgi?id=69034
+
+
+Threadsafety model
+==================
+
+  - A FT_Face object can only be safely used from one thread at a time.
+
+  - A FT_Library object can be used without modification from multiple
+    threads at the same time.
+
+  - FT_Face creation / destruction with the same FT_Library object can
+    only be done from one thread at a time.
+
+
+Discussion
+==========
+
+In this model, one can use a single FT_Library object across threads as
+long as a mutex lock is used around FT_New_Face / FT_Done_Face.  Any calls
+to FT_Load_Glyph and similar API are safe and do not need the lock to be
+held as long as the same FT_Face is not used from multiple threads at the
+same time.
+
+Note that this goes almost all the way to making FreeType API useful from
+multiple threads.  The only remaining bit is the unfortunately API that is
+FT_Library_SetLcdFilter (and to less extent FT_Library_SetLcdFilterWeights).
+
+I will try to work out a solution for replacing FT_Library_SetLcdFilter
+using new FT_LOAD_* values.  There seem to be quite a few bits available in
+that space, so that work should happen soon.
+
+
+Running
+=======
+
+To run this test, give it a font file, and optionally:
+
+  - Number of threads
+  - Number of iterations per thread
+  - Pixels per EM
+  - Load flags in hexadecimal
+
+The tool then will create one FT_Library, spawn many threads, and within
+each thread create an FT_Face (after proper locking) and load glyphs from
+the font for specified number of iterations and then destruct the face and
+return.  The test also destructs and reconstructs the face every 1000
+iterations.
+
+Run with no arguments to get usage info.  Quoting here:
+
+usage: ftthread fontfile.ttf [numthreads] [numiters] [ppem] [loadflags-hex]
+
+numthreads, numiters, and ppem default to 100.
+
+loadflags defaults to 0.  Values are in hex.
+Useful flags to logically or:
+NO_HINTING=2
+RENDER=4
+FORCE_AUTOHINT=20
+MONOCHROME=1000
+NO_AUTOHINT=8000
+COLOR=100000
+
+
+In particular, I've found the following load_flags values to be useful:
+
+  0	Use native hinting (bytecode / CFF), no rasterization
+  2	No hinting whatsoever
+  20	Use autohinter
+  4	Rasterize using smooth rasterizer
+  1004	Rasterize using monochrome rasterizer
+
+Remember to test with both TrueType and CFF fonts.  I have done both.
+I have not tested bitmap (color or not) fonts, but don't know of any
+outstanding issues there.
+
+
+30 December 2014
+
+Behdad Esfahbod
