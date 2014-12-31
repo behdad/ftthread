@@ -102,7 +102,20 @@ Remember to test with both TrueType and CFF fonts.  I have done both.
 I have not tested bitmap (color or not) fonts, but don't know of any
 outstanding issues there.
 
+For example, here's how I test rasterizing glyphs in Roboto-Regular.ttf
+using 40 threads, 10000 iterations per thread, at 150ppm, and repeat
+that until it fails:
 
-30 December 2014
+$ time while ./ftthread Roboto-Regular.ttf 40 10000 150 4; do echo -n '.'; done
+
+Make sure you run "ulimit -c unlimited" in your shell first such that
+you get a core dump when the test fails.
+
+Please report any failures you discover if it happens with a FreeType
+including the patchset.
+
+
+Thanks!
 
 Behdad Esfahbod
+30 December 2014
