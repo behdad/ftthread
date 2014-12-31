@@ -114,6 +114,9 @@ you get a core dump when the test fails.
 Please report any failures you discover if it happens with a FreeType
 including the patchset.
 
+Here is the upstream thread with the announecement of this work:
+
+  http://www.mail-archive.com/freetype-devel@nongnu.org/msg06758.html
 
 Thanks!
 
